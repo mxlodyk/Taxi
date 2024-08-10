@@ -37,12 +37,19 @@ class TaxiProblem:
 
         # Map passenger location to coordinates
         passenger_coords = [(0, 0), (0, 4), (4, 0), (4, 3)]
+        destination_coords = [(0, 0), (0, 4), (4, 0), (4, 3)]
+
 
         if passenger_location < 4:
             passenger_row, passenger_col = passenger_coords[passenger_location]
-
             if passenger_location != 4 and (taxi_row, taxi_col) == (passenger_row, passenger_col):
                 action = 4  # Pickup action
+            else:
+                action = self.env.action_space.sample()
+        elif passenger_location == 4:
+            destination_row, destination_col = destination_coords[destination]
+            if (taxi_row, taxi_col) == (destination_row, destination_col):
+                action = 5
             else:
                 action = self.env.action_space.sample()
 
@@ -52,9 +59,6 @@ class TaxiProblem:
         result.append((action, observation, reward, terminated, truncated, info))
         return result
 
-    def successors_and_costs(self, state):
-        result = []
-
 def uniform_cost_search(problem):
     frontier = queue.PriorityQueue()
     frontier.put((0, problem.start_state(), list()))
@@ -63,7 +67,8 @@ def uniform_cost_search(problem):
         if problem.goal_test(state):
             return (past_reward, solution)
         for action, new_state, reward, terminated, truncated, info in problem.take_action(state):
-            frontier.put((past_reward + reward, new_state, solution + action))
+            new_solution = solution + action
+            frontier.put((past_reward + reward, new_state, new_solution))
 
 def print_solution(solution):
     total_cost, history = solution
@@ -72,9 +77,4 @@ def print_solution(solution):
         print(item)
 
 problem = TaxiProblem()
-#start_state = problem.start_state()
-#problem.decode_state(start_state)
-#for _ in range(50):
-#    problem.take_action(start_state)
-#print(start_state)
 print_solution(uniform_cost_search(problem))
