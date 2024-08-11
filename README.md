@@ -51,5 +51,5 @@ python main.py
 
 ## Design
 
-![TaxiProblem Class Diagram](https://github.com/mxlodyk/Taxi/assets/class_diagram.png)
+![TaxiProblem Class Diagram](assets/class_diagram.png)
 
