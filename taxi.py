@@ -4,7 +4,7 @@ import queue
 import multiprocessing
 
 # Environment Seed
-SEED = 100
+current_seed = 100
 
 # ==================
 # Taxi Problem Class
@@ -16,7 +16,7 @@ class TaxiProblem:
     # ===========
     def __init__(self, seed):
         self.env = gym.make("Taxi-v3", render_mode="human")
-        self.start_state, _ = self.env.reset(seed=SEED)
+        self.start_state, _ = self.env.reset(seed=current_seed)
 
     # ==================
     # Heuristic Function
@@ -171,7 +171,7 @@ class TaxiProblem:
     # ===============
     def render_solution(self, solution):
         # Reset environment with the same seed as the environment used for searching
-        self.env.reset(seed=SEED)
+        self.env.reset(seed=current_seed)
         # For each action in the solution path
         for action in solution:
             # Take the action
@@ -181,9 +181,9 @@ class TaxiProblem:
             # Close environment
         self.env.close() 
 
-# ====================
-# Function to Run a* Search in a Separate Process
-# ====================
+# ===============================================
+# Function to Run A* Search in a Separate Process
+# ===============================================
 def run_a_star(seed, event, solution_queue):
     problem = TaxiProblem(seed)
     solution = problem.a_star_search()
@@ -195,9 +195,9 @@ def run_a_star(seed, event, solution_queue):
         solution_queue.put(("A*", None))
     event.set() 
 
-# ====================
+# ==========================================================
 # Function to Run Dijkstra's Algorithm in a Separate Process
-# ====================
+# ==========================================================
 def run_dijkstra(seed, event, solution_queue):
     problem = TaxiProblem(seed)
     solution = problem.dijkstras_algorithm()
@@ -212,30 +212,35 @@ def run_dijkstra(seed, event, solution_queue):
 # ====================
 # Main Processing Loop
 # ====================
-if __name__ == "__main__":
+def main():
+    global current_seed
     selection = input("Please select a search algorithm:\n"
                       "1. A* Search\n"
                       "2. Dijkstra's Algorithm\n"
-                      "3. Compare\n")
+                      "3. Compare\n"
+                      "4. Change Seed\n")
 
+    # Selection 1: A*
     if selection == "1":
         event = multiprocessing.Event()
         solution_queue = multiprocessing.Queue()
-        run_a_star(seed=SEED, event=event, solution_queue=solution_queue)
+        run_a_star(seed=current_seed, event=event, solution_queue=solution_queue)
         _, solution = solution_queue.get()
         if solution:
-            problem = TaxiProblem(SEED)  # Recreate the environment for rendering
+            problem = TaxiProblem(current_seed)
             problem.render_solution(solution)
 
+    # Selection 2: Dijkstra's
     elif selection == "2":
         event = multiprocessing.Event()
         solution_queue = multiprocessing.Queue()
-        run_dijkstra(seed=SEED, event=event, solution_queue=solution_queue)
+        run_dijkstra(seed=current_seed, event=event, solution_queue=solution_queue)
         _, solution = solution_queue.get()
         if solution:
-            problem = TaxiProblem(SEED)  # Recreate the environment for rendering
+            problem = TaxiProblem(current_seed) 
             problem.render_solution(solution)
 
+    # Selection 3: Compare
     elif selection == "3":
 
         event1 = multiprocessing.Event()
@@ -243,8 +248,8 @@ if __name__ == "__main__":
 
         solution_queue = multiprocessing.Queue()
 
-        process1 = multiprocessing.Process(target=run_a_star, args=(SEED, event1, solution_queue))
-        process2 = multiprocessing.Process(target=run_dijkstra, args=(SEED + 1, event2, solution_queue))
+        process1 = multiprocessing.Process(target=run_a_star, args=(current_seed, event1, solution_queue))
+        process2 = multiprocessing.Process(target=run_dijkstra, args=(current_seed + 1, event2, solution_queue))
 
 
         process1.start()
@@ -260,7 +265,15 @@ if __name__ == "__main__":
             algorithm_name, solution = solution_queue.get()
             if solution:
                 print(f"{algorithm_name} rendering...")
-                problem = TaxiProblem(SEED if algorithm_name == "A*" else SEED + 1)  # Recreate environment
+                problem = TaxiProblem(current_seed if algorithm_name == "A*" else current_seed + 1)
                 problem.render_solution(solution)
             else:
                 pass
+
+    # Selection 4: Change Seed
+    elif selection == "4":
+        current_seed = int(input("Enter seed:\n"))
+        main()
+
+if __name__ == "__main__":
+    main()
