@@ -1,80 +1,108 @@
+import heapq
+
 import gymnasium as gym
 import queue
 
 class TaxiProblem:
-
     def __init__(self):
         self.env = gym.make("Taxi-v3", render_mode="human")
-        self.destination = -1
-        self.passenger = -1
-        self.taxi = [-1, -1]
-        if self.goal_test:
-            self.env.close()
+        self.start_state, _ = self.env.reset(seed=102)
 
-    def start_state(self):
-        state, info = self.env.reset()
-        print(state) # Print start state
-        return state
-
-    def goal_state(self, state):
-        # return observation
-        pass
-
-    def goal_test(self, state):
-        # return self.env == self.goal_state()
-        return False
-        pass
-
-    def decode_state(self, state):
+    def heuristic(self, state):
         taxi_row, taxi_col, passenger_location, destination = self.env.unwrapped.decode(state)
-        print(taxi_row, taxi_col, passenger_location, destination) # Print decoded state
-        return taxi_row, taxi_col, passenger_location, destination
-
-    def take_action(self, state):
-        result = []
-        action = self.env.action_space.sample()
-        taxi_row, taxi_col, passenger_location, destination = self.decode_state(state)
-
-        # Map passenger location to coordinates
-        passenger_coords = [(0, 0), (0, 4), (4, 0), (4, 3)]
-        destination_coords = [(0, 0), (0, 4), (4, 0), (4, 3)]
-
-
+        # Passenger is at a location (0 to 3)
         if passenger_location < 4:
-            passenger_row, passenger_col = passenger_coords[passenger_location]
-            if passenger_location != 4 and (taxi_row, taxi_col) == (passenger_row, passenger_col):
-                action = 4  # Pickup action
+            # Convert passenger location to coordinates
+            passenger_coords = self.env.unwrapped.locs[passenger_location]
+            # Return Manhattan distance between the taxi and the passenger
+            distance_to_passenger = abs(taxi_row - passenger_coords[0]) + abs(taxi_col - passenger_coords[1])
+
+            # Provide strong negative heuristic to prioritise picking up customer if reached
+            if distance_to_passenger == 0:
+                return -100
             else:
-                action = self.env.action_space.sample()
+                return distance_to_passenger
+
+        # Passenger is in the taxi
         elif passenger_location == 4:
-            destination_row, destination_col = destination_coords[destination]
-            if (taxi_row, taxi_col) == (destination_row, destination_col):
-                action = 5
-            else:
-                action = self.env.action_space.sample()
+            # Convert destination location to coordinates
+            destination_coords = self.env.unwrapped.locs[destination]
+            # Return Manhattan distance between the taxi and the destination
+            return abs(taxi_row - destination_coords[0]) + abs(taxi_col - destination_coords[1])
+        else:
+            raise ValueError(f"Unexpected passenger_location value: {passenger_location}")
 
-        observation, reward, terminated, truncated, info = self.env.step(action)  # Take action
+    # Check if state is goal state
+    def is_goal_state(self, state):
+        taxi_row, taxi_col, passenger_location, destination = self.env.unwrapped.decode(state)
+        return passenger_location == destination
 
-        print(f"Action taken: {action}, Reward: {reward}")
-        result.append((action, observation, reward, terminated, truncated, info))
-        return result
+    # Generate successors of given state
+    def get_successors(self, state):
+        successors = []
+        # For each available action
+        for action in range(self.env.action_space.n):
+            # Set the environment state to the current state
+            self.env.unwrapped.s = state
 
-def uniform_cost_search(problem):
-    frontier = queue.PriorityQueue()
-    frontier.put((0, problem.start_state(), list()))
-    while frontier:
-        past_reward, state, solution = frontier.get()
-        if problem.goal_test(state):
-            return (past_reward, solution)
-        for action, new_state, reward, terminated, truncated, info in problem.take_action(state):
-            new_solution = solution + action
-            frontier.put((past_reward + reward, new_state, new_solution))
+            new_state, reward, terminated, truncated, _ = self.env.step(action)
+            if not terminated and not truncated:  # Avoid adding terminal states back into the exploration
+                successors.append((new_state, action, reward))
+        return successors
 
-def print_solution(solution):
-    total_cost, history = solution
-    print(f"Total cost: {total_cost}")
-    for item in history:
-        print(item)
+    def a_star_search(self):
+        # Initialise start state
+        start_state = self.start_state
+        # Initialise priority queue with tuples containing priority and state
+        frontier = [(-0, start_state)]
+        # Convert queue to heap for retrieving highest reward actions
+        heapq.heapify(frontier)
 
+        # Initialise dictionary to store each state and action that led to current state
+        path_taken = {}
+        # Initialise dictionary to track the cost from the start state to current state
+        rewards_so_far = {start_state: 0}
+        explored = set()
+
+        while frontier:
+            priority, current_state = heapq.heappop(frontier)
+
+            if self.is_goal_state(current_state):
+                return self.reconstruct_path(path_taken, current_state)
+
+            explored.add(current_state)
+
+            for next_state, action, reward in self.get_successors(current_state):
+                new_rewards = rewards_so_far[current_state] + reward
+
+                if next_state not in explored and (next_state not in rewards_so_far or new_rewards < rewards_so_far[next_state]):
+                    rewards_so_far[next_state] = new_rewards
+                    priority = new_rewards + self.heuristic(next_state)
+                    heapq.heappush(frontier, (priority, next_state))
+                    path_taken[next_state] = (current_state, action)
+
+        return None  # No solution found
+
+    def reconstruct_path(self, came_from, current_state):
+        path = []
+        while current_state in came_from:
+            current_state, action = came_from[current_state]
+            path.append(action)
+        path.reverse()  # Reverse to get the path from start to goal
+        return path
+
+    def render_solution(self, solution):
+        self.env.reset()
+        for action in solution:
+            self.env.step(action)
+            self.env.render()  # Render each step
+        self.env.close()  # Close the environment when done
+
+# Create problem instance and run A* search
 problem = TaxiProblem()
-print_solution(uniform_cost_search(problem))
+solution = problem.a_star_search()
+if solution:
+    print("Solution actions:", solution)
+    problem.render_solution(solution)  # Render the solution actions
+else:
+    print("No solution found.")
