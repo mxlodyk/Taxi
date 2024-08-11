@@ -1,12 +1,11 @@
-import heapq
-
 import gymnasium as gym
+import heapq
 import queue
 
 class TaxiProblem:
     def __init__(self):
         self.env = gym.make("Taxi-v3", render_mode="human")
-        self.start_state, _ = self.env.reset(seed=102)
+        self.start_state, _ = self.env.reset()
 
     def heuristic(self, state):
         taxi_row, taxi_col, passenger_location, destination = self.env.unwrapped.decode(state)
@@ -20,15 +19,19 @@ class TaxiProblem:
             # Provide strong negative heuristic to prioritise picking up customer if reached
             if distance_to_passenger == 0:
                 return -100
-            else:
-                return distance_to_passenger
+            return distance_to_passenger
 
         # Passenger is in the taxi
         elif passenger_location == 4:
             # Convert destination location to coordinates
             destination_coords = self.env.unwrapped.locs[destination]
             # Return Manhattan distance between the taxi and the destination
-            return abs(taxi_row - destination_coords[0]) + abs(taxi_col - destination_coords[1])
+            distance_to_destination = abs(taxi_row - destination_coords[0]) + abs(taxi_col - destination_coords[1])
+
+            # Encourage moving toward the destination with an estimate of the reward
+            expected_reward = 20 - distance_to_destination  # Positive reward for successful dropoff
+            return -expected_reward  # Negative to prioritize higher rewards
+
         else:
             raise ValueError(f"Unexpected passenger_location value: {passenger_location}")
 
@@ -39,6 +42,7 @@ class TaxiProblem:
 
     # Generate successors of given state
     def get_successors(self, state):
+        taxi_row, taxi_col, passenger_location, destination = self.env.unwrapped.decode(state)
         successors = []
         # For each available action
         for action in range(self.env.action_space.n):
@@ -46,6 +50,13 @@ class TaxiProblem:
             self.env.unwrapped.s = state
 
             new_state, reward, terminated, truncated, _ = self.env.step(action)
+
+            if action == 5:
+                if passenger_location == 4 and (taxi_row, taxi_col) == self.env.unwrapped.locs[destination]:
+                    successors.append((new_state, action, reward))
+                    # Skip rest of loop since drop off must be done if passenger is at destination
+                    continue
+
             if not terminated and not truncated:  # Avoid adding terminal states back into the exploration
                 successors.append((new_state, action, reward))
         return successors
@@ -90,6 +101,8 @@ class TaxiProblem:
             path.append(action)
         path.reverse()  # Reverse to get the path from start to goal
         return path
+
+    # SIMULATE THE ENVIRONMENT USING THESE ACTIONS!!!
 
     def render_solution(self, solution):
         self.env.reset()
