@@ -182,33 +182,85 @@ class TaxiProblem:
         self.env.close() 
 
 # ====================
+# Function to Run a* Search in a Separate Process
+# ====================
+def run_a_star(seed, event, solution_queue):
+    problem = TaxiProblem(seed)
+    solution = problem.a_star_search()
+    if solution:
+        print("A* Solution actions:", solution)
+        solution_queue.put(("A*", solution))
+    else:
+        print("A* No solution found.")
+        solution_queue.put(("A*", None))
+    event.set() 
+
+# ====================
+# Function to Run Dijkstra's Algorithm in a Separate Process
+# ====================
+def run_dijkstra(seed, event, solution_queue):
+    problem = TaxiProblem(seed)
+    solution = problem.dijkstras_algorithm()
+    if solution:
+        print("Dijkstra's Solution actions:", solution)
+        solution_queue.put(("Dijkstra", solution))
+    else:
+        print("Dijkstra's No solution found.")
+    solution_queue.put(("Dijkstra", None))
+    event.set()
+
+# ====================
 # Main Processing Loop
 # ====================
-# Get user input to determine which search algorithm to use
-selection = input("Please select a search algorithm:\n"
-                  "1. A* Search\n"
-                  "2. Dijkstra's Algorithm\n"
-                  "3. Compare\n")
-# Create problem instance and run A* search
-problem = TaxiProblem(seed=SEED)
-# Menu logic
-if selection == "1":
-    solution = problem.a_star_search()
-    # If search found a solution
-    if solution:
-        # Print solution path
-        print("Solution actions:", solution)
-        # Render solution path
-        problem.render_solution(solution)
-    else:
-        print("No solution found.")
-elif selection == "2":
-    solution = problem.dijkstras_algorithm()
-    # If search found a solution
-    if solution:
-        # Print solution path
-        print("Solution actions:", solution)
-        # Render solution path
-        problem.render_solution(solution)
-    else:
-        print("No solution found.")
+if __name__ == "__main__":
+    selection = input("Please select a search algorithm:\n"
+                      "1. A* Search\n"
+                      "2. Dijkstra's Algorithm\n"
+                      "3. Compare\n")
+
+    if selection == "1":
+        event = multiprocessing.Event()
+        solution_queue = multiprocessing.Queue()
+        run_a_star(seed=SEED, event=event, solution_queue=solution_queue)
+        _, solution = solution_queue.get()
+        if solution:
+            problem = TaxiProblem(SEED)  # Recreate the environment for rendering
+            problem.render_solution(solution)
+
+    elif selection == "2":
+        event = multiprocessing.Event()
+        solution_queue = multiprocessing.Queue()
+        run_dijkstra(seed=SEED, event=event, solution_queue=solution_queue)
+        _, solution = solution_queue.get()
+        if solution:
+            problem = TaxiProblem(SEED)  # Recreate the environment for rendering
+            problem.render_solution(solution)
+
+    elif selection == "3":
+
+        event1 = multiprocessing.Event()
+        event2 = multiprocessing.Event()
+
+        solution_queue = multiprocessing.Queue()
+
+        process1 = multiprocessing.Process(target=run_a_star, args=(SEED, event1, solution_queue))
+        process2 = multiprocessing.Process(target=run_dijkstra, args=(SEED + 1, event2, solution_queue))
+
+
+        process1.start()
+        process2.start()
+
+        event1.wait()
+        event2.wait()
+
+        process1.join()
+        process2.join()
+
+        while not solution_queue.empty():
+            algorithm_name, solution = solution_queue.get()
+            if solution:
+                print(f"{algorithm_name} rendering...")
+                problem = TaxiProblem(SEED if algorithm_name == "A*" else SEED + 1)  # Recreate environment
+                problem.render_solution(solution)
+            else:
+                pass
