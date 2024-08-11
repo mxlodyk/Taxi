@@ -5,6 +5,7 @@
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Design](#design)
 - [Algorithm Descriptions](#algorithm-descriptions)
 
 ## Introduction
@@ -47,3 +48,8 @@ Run the program by executing the `main()` function. You will be prompted to sele
 ```bash
 python main.py
 ```
+
+## Design
+
+![App Screenshot](https://github.com/melodyk/Taxi/assets/class_diagram.png)
+
