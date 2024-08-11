@@ -1,6 +1,7 @@
 import gymnasium as gym
 import heapq
 import queue
+import multiprocessing
 
 # Environment Seed
 SEED = 100
@@ -13,7 +14,7 @@ class TaxiProblem:
     # ===========
     # Initialiser
     # ===========
-    def __init__(self):
+    def __init__(self, seed):
         self.env = gym.make("Taxi-v3", render_mode="human")
         self.start_state, _ = self.env.reset(seed=SEED)
 
@@ -103,7 +104,7 @@ class TaxiProblem:
             priority, current_state = heapq.heappop(frontier)
 
             if self.goal_state(current_state):
-                return self.reconstruct_path(came_from), current_state
+                return self.reconstruct_path(came_from, current_state)
 
             explored.add(current_state)
 
@@ -116,13 +117,40 @@ class TaxiProblem:
                     heapq.heappush(frontier, (priority, next_state))
                     came_from[next_state] = (current_state, action)
 
-        return None  # No solution found
+        # No solution found
+        return None
     
     # ====================
     # Dijkstra's Algorithm
     # ====================
-    def dijkstras_algorithm():
-        pass
+    def dijkstras_algorithm(self):
+        # Initialise start state
+        start_state = self.start_state
+        # Initialise priority queue with tuples containing priority and state
+        frontier = [(0, start_state)]
+        heapq.heapify(frontier)
+        came_from = {}
+        rewards_so_far = {start_state: 0}
+        explored = set()
+
+        while frontier:
+            # Pop state with smallest cumulative reward
+            current_reward, current_state = heapq.heappop(frontier)
+            if self.goal_state(current_state):
+                return self.reconstruct_path(came_from, current_state)
+            
+            explored.add(current_state)
+
+            for next_state, action, reward in self.successors(current_state):
+                new_reward = rewards_so_far[current_state] + reward
+
+                if next_state not in explored and (next_state not in rewards_so_far or new_reward < rewards_so_far[next_state]):
+                    rewards_so_far[next_state] = new_reward
+                    heapq.heappush(frontier, (new_reward, next_state))
+                    came_from[next_state] = (current_state, action)
+
+        # No solution found
+        return None
 
     # =========================
     # Reconstruct Solution Path
@@ -159,9 +187,10 @@ class TaxiProblem:
 # Get user input to determine which search algorithm to use
 selection = input("Please select a search algorithm:\n"
                   "1. A* Search\n"
-                  "2. Dijkstra's Algorithm\n")
+                  "2. Dijkstra's Algorithm\n"
+                  "3. Compare\n")
 # Create problem instance and run A* search
-problem = TaxiProblem()
+problem = TaxiProblem(seed=SEED)
 # Menu logic
 if selection == "1":
     solution = problem.a_star_search()
