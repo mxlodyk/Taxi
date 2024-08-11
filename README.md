@@ -51,5 +51,5 @@ python main.py
 
 ## Design
 
-![App Screenshot](https://github.com/melodyk/Taxi/assets/class_diagram.png)
+![TaxiProblem Class Diagram](https://github.com/mxlodyk/Taxi/assets/class_diagram.png)
 
