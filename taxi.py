@@ -2,6 +2,7 @@ import gymnasium as gym
 import heapq
 import queue
 import multiprocessing
+import sys
 
 # Environment Seed
 current_seed = 100
@@ -77,80 +78,11 @@ class TaxiProblem:
                     successors.append((new_state, action, reward))
                     # Skip rest of loop since drop off must be done if passenger is at destination
                     continue
-
-            if not terminated and not truncated:  # Avoid adding terminal states back into the exploration
+                    
+            # Avoid adding terminated states back into exploration
+            if not terminated and not truncated:
                 successors.append((new_state, action, reward))
         return successors
-
-    # =========
-    # A* Search
-    # =========
-    def a_star_search(self):
-        # Initialise start state
-        start_state = self.start_state
-        # Initialise priority queue with tuples containing priority and state
-        frontier = [(-0, start_state)]
-        # Convert queue to heap for retrieving highest reward actions
-        heapq.heapify(frontier)
-
-        # Initialise dictionary to store each (previous) state:action key pair that led to current state
-        came_from = {}
-        # Initialise dictionary to track the cumulative 'cost' from the start state to the current state
-        rewards_so_far = {start_state: 0}
-        explored = set()
-
-        while frontier:
-            # Pop state with the highest priority
-            priority, current_state = heapq.heappop(frontier)
-
-            if self.goal_state(current_state):
-                return self.reconstruct_path(came_from, current_state)
-
-            explored.add(current_state)
-
-            for next_state, action, reward in self.successors(current_state):
-                new_rewards = rewards_so_far[current_state] + reward
-
-                if next_state not in explored and (next_state not in rewards_so_far or new_rewards < rewards_so_far[next_state]):
-                    rewards_so_far[next_state] = new_rewards
-                    priority = new_rewards + self.heuristic(next_state)
-                    heapq.heappush(frontier, (priority, next_state))
-                    came_from[next_state] = (current_state, action)
-
-        # No solution found
-        return None
-    
-    # ====================
-    # Dijkstra's Algorithm
-    # ====================
-    def dijkstras_algorithm(self):
-        # Initialise start state
-        start_state = self.start_state
-        # Initialise priority queue with tuples containing priority and state
-        frontier = [(0, start_state)]
-        heapq.heapify(frontier)
-        came_from = {}
-        rewards_so_far = {start_state: 0}
-        explored = set()
-
-        while frontier:
-            # Pop state with smallest cumulative reward
-            current_reward, current_state = heapq.heappop(frontier)
-            if self.goal_state(current_state):
-                return self.reconstruct_path(came_from, current_state)
-            
-            explored.add(current_state)
-
-            for next_state, action, reward in self.successors(current_state):
-                new_reward = rewards_so_far[current_state] + reward
-
-                if next_state not in explored and (next_state not in rewards_so_far or new_reward < rewards_so_far[next_state]):
-                    rewards_so_far[next_state] = new_reward
-                    heapq.heappush(frontier, (new_reward, next_state))
-                    came_from[next_state] = (current_state, action)
-
-        # No solution found
-        return None
 
     # =========================
     # Reconstruct Solution Path
@@ -181,18 +113,90 @@ class TaxiProblem:
             # Close environment
         self.env.close() 
 
+
+# =========
+# A* Search
+# =========
+def a_star_search(problem):
+    # Initialise start state
+    start_state = problem.start_state
+    # Initialise priority queue with tuples containing priority and state
+    frontier = [(-0, start_state)]
+    # Convert queue to heap for retrieving highest reward actions
+    heapq.heapify(frontier)
+
+    # Initialise dictionary to store each (previous) state:action key pair that led to current state
+    came_from = {}
+    # Initialise dictionary to track the cumulative 'cost' from the start state to the current state
+    rewards_so_far = {start_state: 0}
+    explored = set()
+
+    while frontier:
+        # Pop state with the highest priority
+        priority, current_state = heapq.heappop(frontier)
+
+        if problem.goal_state(current_state):
+            return problem.reconstruct_path(came_from, current_state)
+
+        explored.add(current_state)
+
+        for next_state, action, reward in problem.successors(current_state):
+            new_rewards = rewards_so_far[current_state] + reward
+
+            if next_state not in explored and (next_state not in rewards_so_far or new_rewards < rewards_so_far[next_state]):
+                rewards_so_far[next_state] = new_rewards
+                priority = new_rewards + problem.heuristic(next_state)
+                heapq.heappush(frontier, (priority, next_state))
+                came_from[next_state] = (current_state, action)
+
+    # No solution found
+    return None
+
+ # ====================
+# Dijkstra's Algorithm
+# ====================
+def dijkstras_algorithm(problem):
+    # Initialise start state
+    start_state = problem.start_state
+    # Initialise priority queue with tuples containing priority and state
+    frontier = [(0, start_state)]
+    heapq.heapify(frontier)
+    came_from = {}
+    rewards_so_far = {start_state: 0}
+    explored = set()
+
+    while frontier:
+        # Pop state with smallest cumulative reward
+        current_reward, current_state = heapq.heappop(frontier)
+        if problem.goal_state(current_state):
+            return problem.reconstruct_path(came_from, current_state)
+        
+        explored.add(current_state)
+
+        for next_state, action, reward in problem.successors(current_state):
+            new_reward = rewards_so_far[current_state] + reward
+
+            if next_state not in explored and (next_state not in rewards_so_far or new_reward < rewards_so_far[next_state]):
+                rewards_so_far[next_state] = new_reward
+                heapq.heappush(frontier, (new_reward, next_state))
+                came_from[next_state] = (current_state, action)
+
+    # No solution found
+    return None
+
 # ===============================================
 # Function to Run A* Search in a Separate Process
 # ===============================================
 def run_a_star(seed, event, solution_queue):
     problem = TaxiProblem(seed)
-    solution = problem.a_star_search()
+    solution = a_star_search(problem)
     if solution:
         print("A* Solution actions:", solution)
         solution_queue.put(("A*", solution))
     else:
         print("A* No solution found.")
         solution_queue.put(("A*", None))
+    # Event: A* search complete
     event.set() 
 
 # ==========================================================
@@ -200,13 +204,14 @@ def run_a_star(seed, event, solution_queue):
 # ==========================================================
 def run_dijkstra(seed, event, solution_queue):
     problem = TaxiProblem(seed)
-    solution = problem.dijkstras_algorithm()
+    solution = dijkstras_algorithm(problem)
     if solution:
         print("Dijkstra's Solution actions:", solution)
         solution_queue.put(("Dijkstra", solution))
     else:
         print("Dijkstra's No solution found.")
     solution_queue.put(("Dijkstra", None))
+    # Event: Dijkstra's algorithm complete
     event.set()
 
 # ====================
@@ -214,66 +219,77 @@ def run_dijkstra(seed, event, solution_queue):
 # ====================
 def main():
     global current_seed
-    selection = input("Please select a search algorithm:\n"
-                      "1. A* Search\n"
-                      "2. Dijkstra's Algorithm\n"
-                      "3. Compare\n"
-                      "4. Change Seed\n")
-
-    # Selection 1: A*
-    if selection == "1":
-        event = multiprocessing.Event()
-        solution_queue = multiprocessing.Queue()
-        run_a_star(seed=current_seed, event=event, solution_queue=solution_queue)
-        _, solution = solution_queue.get()
-        if solution:
-            problem = TaxiProblem(current_seed)
-            problem.render_solution(solution)
-
-    # Selection 2: Dijkstra's
-    elif selection == "2":
-        event = multiprocessing.Event()
-        solution_queue = multiprocessing.Queue()
-        run_dijkstra(seed=current_seed, event=event, solution_queue=solution_queue)
-        _, solution = solution_queue.get()
-        if solution:
-            problem = TaxiProblem(current_seed) 
-            problem.render_solution(solution)
-
-    # Selection 3: Compare
-    elif selection == "3":
-
-        event1 = multiprocessing.Event()
-        event2 = multiprocessing.Event()
-
-        solution_queue = multiprocessing.Queue()
-
-        process1 = multiprocessing.Process(target=run_a_star, args=(current_seed, event1, solution_queue))
-        process2 = multiprocessing.Process(target=run_dijkstra, args=(current_seed + 1, event2, solution_queue))
-
-
-        process1.start()
-        process2.start()
-
-        event1.wait()
-        event2.wait()
-
-        process1.join()
-        process2.join()
-
-        while not solution_queue.empty():
-            algorithm_name, solution = solution_queue.get()
+    selection = -1
+    
+    while selection != 5:
+        selection = input("Please select a search algorithm:\n"
+                        "1. A* Search\n"
+                        "2. Dijkstra's Algorithm\n"
+                        "3. Compare\n"
+                        "4. Change Seed\n"
+                        "5. Quit\n")
+        
+        # Selection 1: A*
+        if selection == "1":
+            # Create event and queue for A* solution
+            event = multiprocessing.Event()
+            solution_queue = multiprocessing.Queue()
+            # Retrieve A* solution from queue
+            run_a_star(seed=current_seed, event=event, solution_queue=solution_queue)
+            _, solution = solution_queue.get()
             if solution:
-                print(f"{algorithm_name} rendering...")
-                problem = TaxiProblem(current_seed if algorithm_name == "A*" else current_seed + 1)
+                problem = TaxiProblem(current_seed)
                 problem.render_solution(solution)
-            else:
-                pass
 
-    # Selection 4: Change Seed
-    elif selection == "4":
-        current_seed = int(input("Enter seed:\n"))
-        main()
+        # Selection 2: Dijkstra's
+        elif selection == "2":
+            # Create event and queue for Dijkstra's solution
+            event = multiprocessing.Event()
+            solution_queue = multiprocessing.Queue()
+            run_dijkstra(seed=current_seed, event=event, solution_queue=solution_queue)
+            # Retrieve Dijkstra's solution from queue
+            _, solution = solution_queue.get()
+            if solution:
+                problem = TaxiProblem(current_seed) 
+                problem.render_solution(solution)
+
+        # Selection 3: Compare
+        elif selection == "3":
+
+            event1 = multiprocessing.Event()
+            event2 = multiprocessing.Event()
+
+            solution_queue = multiprocessing.Queue()
+
+            process1 = multiprocessing.Process(target=run_a_star, args=(current_seed, event1, solution_queue))
+            process2 = multiprocessing.Process(target=run_dijkstra, args=(current_seed + 1, event2, solution_queue))
+
+            process1.start()
+            process2.start()
+
+            event1.wait()
+            event2.wait()
+
+            process1.join()
+            process2.join()
+
+            while not solution_queue.empty():
+                algorithm_name, solution = solution_queue.get()
+                if solution:
+                    print(f"{algorithm_name} rendering...")
+                    problem = TaxiProblem(current_seed if algorithm_name == "A*" else current_seed + 1)
+                    problem.render_solution(solution)
+                else:
+                    pass
+
+        # Selection 4: Change Seed
+        elif selection == "4":
+            current_seed = int(input("Enter seed:\n"))
+            main()
+
+        # Selection 5: Quit
+        elif selection == "5":
+            sys.exit(0)
 
 if __name__ == "__main__":
     main()
