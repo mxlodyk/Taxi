@@ -187,32 +187,40 @@ def dijkstras_algorithm(problem):
 # ===============================================
 # Function to Run A* Search in a Separate Process
 # ===============================================
-def run_a_star(seed, event, solution_queue):
+def run_algorithm(algorithm, seed, event, solution_queue):
     problem = TaxiProblem(seed)
-    solution = a_star_search(problem)
-    if solution:
-        print("A* Solution actions:", solution)
-        solution_queue.put(("A*", solution))
-    else:
-        print("A* No solution found.")
-        solution_queue.put(("A*", None))
-    # Event: A* search complete
+    if algorithm == "a_star_search":
+        solution = a_star_search(problem)
+        if solution:
+            print("A* Solution actions:", solution)
+            solution_queue.put(("A*", solution))
+        else:
+            print("A* No solution found.")
+            solution_queue.put(("A*", None))
+    elif algorithm == "dijkstras_algorithm":
+        solution = dijkstras_algorithm(problem)
+        if solution:
+            print("Dijkstra Solution actions:", solution)
+            solution_queue.put(("Dijkstra", solution))
+        else:
+            print("A* No solution found.")
+            solution_queue.put(("Dijkstra", None))
     event.set() 
 
 # ==========================================================
 # Function to Run Dijkstra's Algorithm in a Separate Process
 # ==========================================================
-def run_dijkstra(seed, event, solution_queue):
-    problem = TaxiProblem(seed)
-    solution = dijkstras_algorithm(problem)
-    if solution:
-        print("Dijkstra's Solution actions:", solution)
-        solution_queue.put(("Dijkstra", solution))
-    else:
-        print("Dijkstra's No solution found.")
-    solution_queue.put(("Dijkstra", None))
-    # Event: Dijkstra's algorithm complete
-    event.set()
+# def run_dijkstra(seed, event, solution_queue):
+#     problem = TaxiProblem(seed)
+#     solution = dijkstras_algorithm(problem)
+#     if solution:
+#         print("Dijkstra's Solution actions:", solution)
+#         solution_queue.put(("Dijkstra", solution))
+#     else:
+#         print("Dijkstra's No solution found.")
+#     solution_queue.put(("Dijkstra", None))
+#     # Event: Dijkstra's algorithm complete
+#     event.set()
 
 # ====================
 # Main Processing Loop
@@ -251,8 +259,8 @@ def main():
 
             solution_queue = multiprocessing.Queue()
 
-            process1 = multiprocessing.Process(target=run_a_star, args=(current_seed, event1, solution_queue))
-            process2 = multiprocessing.Process(target=run_dijkstra, args=(current_seed + 1, event2, solution_queue))
+            process1 = multiprocessing.Process(target=run_algorithm, args=("a_star_search", current_seed, event1, solution_queue))
+            process2 = multiprocessing.Process(target=run_algorithm, args=("dijkstras_algorithm", current_seed, event2, solution_queue))
 
             process1.start()
             process2.start()
