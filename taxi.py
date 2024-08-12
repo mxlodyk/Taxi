@@ -110,7 +110,7 @@ class TaxiProblem:
             self.env.step(action)
             # Render each step
             self.env.render()
-            # Close environment
+        # Close environment
         self.env.close() 
 
 
@@ -220,7 +220,7 @@ def run_dijkstra(seed, event, solution_queue):
 def main():
     global current_seed
     selection = -1
-    
+
     while selection != 5:
         selection = input("Please select a search algorithm:\n"
                         "1. A* Search\n"
@@ -231,26 +231,16 @@ def main():
         
         # Selection 1: A*
         if selection == "1":
-            # Create event and queue for A* solution
-            event = multiprocessing.Event()
-            solution_queue = multiprocessing.Queue()
-            # Retrieve A* solution from queue
-            run_a_star(seed=current_seed, event=event, solution_queue=solution_queue)
-            _, solution = solution_queue.get()
+            problem = TaxiProblem(current_seed)
+            solution = a_star_search(problem)
             if solution:
-                problem = TaxiProblem(current_seed)
                 problem.render_solution(solution)
 
         # Selection 2: Dijkstra's
         elif selection == "2":
-            # Create event and queue for Dijkstra's solution
-            event = multiprocessing.Event()
-            solution_queue = multiprocessing.Queue()
-            run_dijkstra(seed=current_seed, event=event, solution_queue=solution_queue)
-            # Retrieve Dijkstra's solution from queue
-            _, solution = solution_queue.get()
+            problem = TaxiProblem(current_seed)
+            solution = dijkstras_algorithm(problem)
             if solution:
-                problem = TaxiProblem(current_seed) 
                 problem.render_solution(solution)
 
         # Selection 3: Compare
