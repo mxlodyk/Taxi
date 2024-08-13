@@ -32,10 +32,10 @@ class TaxiProblem:
             # Return heuristic for picking up passenger (Manhattan distance between the taxi and the passenger)
             distance_to_passenger = abs(taxi_row - passenger_coords[0]) + abs(taxi_col - passenger_coords[1])
 
-            # Provide strong negative heuristic to prioritise picking up passenger if taxi is at passenger location
+            # Provide strong positive heuristic to prioritise picking up passenger if taxi is at passenger location
             if distance_to_passenger == 0:
-                return -100
-            return distance_to_passenger
+                return 100
+            return -(distance_to_passenger * 10)
 
         # Passenger is in the taxi
         elif passenger_location == 4:
@@ -43,11 +43,9 @@ class TaxiProblem:
             destination_coords = self.env.unwrapped.locs[destination]
             # Return heuristic for dropping off customer (Manhattan distance between the taxi and the destination)
             distance_to_destination = abs(taxi_row - destination_coords[0]) + abs(taxi_col - destination_coords[1])
-
+            #expected_reward = 20 - distance_to_destination
             # Encourage moving toward the destination with an estimate of the reward
-            expected_reward = 20 - distance_to_destination
-            # Negative to prioritize higher rewards
-            return -expected_reward
+            return 20 - distance_to_destination
 
         else:
             raise ValueError(f"Unexpected passenger_location value: {passenger_location}")
@@ -120,9 +118,9 @@ class TaxiProblem:
 def a_star_search(problem):
     # Initialise start state
     start_state = problem.start_state
-    # Initialise priority queue with tuples containing priority and state
-    frontier = [(-0, start_state)]
-    # Convert queue to heap for retrieving highest reward actions
+    # Initialise list with tuples containing priority and state
+    frontier = [(0, start_state)]
+    # Convert list to heap
     heapq.heapify(frontier)
 
     # Initialise dictionary to store each (previous) state:action key pair that led to current state
@@ -140,26 +138,59 @@ def a_star_search(problem):
 
         explored.add(current_state)
 
-        for next_state, action, reward in problem.successors(current_state):
+        for successor_state, action, reward in problem.successors(current_state):
             new_rewards = rewards_so_far[current_state] + reward
 
-            if next_state not in explored and (next_state not in rewards_so_far or new_rewards < rewards_so_far[next_state]):
-                rewards_so_far[next_state] = new_rewards
-                priority = new_rewards + problem.heuristic(next_state)
-                heapq.heappush(frontier, (priority, next_state))
-                came_from[next_state] = (current_state, action)
+            if successor_state not in explored and (successor_state not in rewards_so_far or new_rewards > rewards_so_far[successor_state]):
+                rewards_so_far[successor_state] = new_rewards
+                # Evaluation
+                priority = -(new_rewards + problem.heuristic(successor_state))
+                heapq.heappush(frontier, (priority, successor_state))
+                came_from[successor_state] = (current_state, action)
 
     # No solution found
     return None
 
- # ====================
+# ========================
+# Greedy Best-First Search
+# ========================
+def greedy_best_first_search(problem):
+    # Initialise start state
+    start_state = problem.start_state
+    # Initialise list with tuples containing priority and state
+    frontier = [(problem.heuristic(start_state), start_state)]
+    # Convert list into heap
+    heapq.heapify(frontier)
+
+    # Initialise dictionary
+    came_from = {}
+    explored = set()
+
+    while frontier:
+        priority, current_state = heapq.heappop(frontier)
+        if problem.goal_state(current_state):
+            return problem.reconstruct_path(came_from, current_state)
+        
+        explored.add(current_state)
+
+        for next_state, action, reward in problem.successors(current_state):
+            if next_state not in explored:
+                # Use heuristic as priority
+                priority = problem.heuristic(next_state)
+                heapq.heappush(frontier, (priority, next_state))
+                came_from[next_state] = (current_state, action)
+
+    return None
+
+# ====================
 # Dijkstra's Algorithm
 # ====================
 def dijkstras_algorithm(problem):
     # Initialise start state
     start_state = problem.start_state
-    # Initialise priority queue with tuples containing priority and state
+    # Initialise list with tuples containing priority and state
     frontier = [(0, start_state)]
+    # Convert list to heap
     heapq.heapify(frontier)
     came_from = {}
     rewards_so_far = {start_state: 0}
@@ -185,7 +216,7 @@ def dijkstras_algorithm(problem):
     return None
 
 # ===============================================
-# Function to Run A* Search in a Separate Process
+# Function to Run Algorithm in Separate Process
 # ===============================================
 def run_algorithm(algorithm, seed, event, solution_queue):
     problem = TaxiProblem(seed)
@@ -197,30 +228,15 @@ def run_algorithm(algorithm, seed, event, solution_queue):
         else:
             print("A* No solution found.")
             solution_queue.put(("A*", None))
-    elif algorithm == "dijkstras_algorithm":
+    elif algorithm == "dijkstra":
         solution = dijkstras_algorithm(problem)
         if solution:
             print("Dijkstra Solution actions:", solution)
             solution_queue.put(("Dijkstra", solution))
         else:
-            print("A* No solution found.")
+            print("Dijkstra No solution found.")
             solution_queue.put(("Dijkstra", None))
     event.set() 
-
-# ==========================================================
-# Function to Run Dijkstra's Algorithm in a Separate Process
-# ==========================================================
-# def run_dijkstra(seed, event, solution_queue):
-#     problem = TaxiProblem(seed)
-#     solution = dijkstras_algorithm(problem)
-#     if solution:
-#         print("Dijkstra's Solution actions:", solution)
-#         solution_queue.put(("Dijkstra", solution))
-#     else:
-#         print("Dijkstra's No solution found.")
-#     solution_queue.put(("Dijkstra", None))
-#     # Event: Dijkstra's algorithm complete
-#     event.set()
 
 # ====================
 # Main Processing Loop
@@ -243,13 +259,16 @@ def main():
             solution = a_star_search(problem)
             if solution:
                 problem.render_solution(solution)
+                print("A* Solution actions:", solution)
 
-        # Selection 2: Dijkstra's
+        # Selection 2: Dijkstra
         elif selection == "2":
             problem = TaxiProblem(current_seed)
             solution = dijkstras_algorithm(problem)
             if solution:
                 problem.render_solution(solution)
+                print("Dijkstra's Solution actions:", solution)
+
 
         # Selection 3: Compare
         elif selection == "3":
@@ -260,7 +279,7 @@ def main():
             solution_queue = multiprocessing.Queue()
 
             process1 = multiprocessing.Process(target=run_algorithm, args=("a_star_search", current_seed, event1, solution_queue))
-            process2 = multiprocessing.Process(target=run_algorithm, args=("dijkstras_algorithm", current_seed, event2, solution_queue))
+            process2 = multiprocessing.Process(target=run_algorithm, args=("dijkstra", current_seed, event2, solution_queue))
 
             process1.start()
             process2.start()
@@ -275,7 +294,7 @@ def main():
                 algorithm_name, solution = solution_queue.get()
                 if solution:
                     print(f"{algorithm_name} rendering...")
-                    problem = TaxiProblem(current_seed if algorithm_name == "A*" else current_seed + 1)
+                    problem = TaxiProblem(current_seed)
                     problem.render_solution(solution)
                 else:
                     pass
