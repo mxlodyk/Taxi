@@ -35,13 +35,13 @@ def main():
                 # Render solution
                 problem.render_solution(solution)
 
-        # Selection 2: Dijkstra's algorithm
+        # Selection 2: IDA* search
         elif selection == "2":
             # Instantiate problem
             problem = taxi.TaxiProblem()
             # Record time
             t0 = time()
-            # Perform Dijkstra's algorithm
+            # Perform IDA* search
             solution = algorithms.iterative_deepening_a_star_search(problem)
             t1 = time() - t0
             if solution:
@@ -86,9 +86,25 @@ def main():
 
         # Selection 4: Change seed
         elif selection == "4":
-            # Get input and assign to seed class variable
-            taxi.seed = int(input("Enter seed:\n"))
+            try:
+                new_seed = int(input("Enter seed:\n"))
+                if new_seed > 0:
+                    # Update seed
+                    taxi.seed = new_seed
+                else:
+                    print("The seed must be a positive integer.")
+            except ValueError:
+                print("The seed must be a positive integer.")
             main()
+            # Get input and assign to seed class variable
+            # new_seed = int(input("Enter seed:\n"))
+            # # Check input is positive integer
+            # if isinstance(new_seed, int) and (new_seed > 0):
+            #     # Update seed
+            #     taxi.seed = int(input("Enter seed:\n"))
+            # else:
+            #     print("The seed must be a positive integer.")
+            # main()
 
         # Selection 5: Quit
         elif selection == "5":

@@ -26,24 +26,26 @@ class TaxiProblem:
     def heuristic(self, state):
         # Decode state
         taxi_row, taxi_col, passenger_location, destination = self.env.unwrapped.decode(state)
+        # Convert destination location to coordinates
+        destination_coords = self.env.unwrapped.locs[destination]
 
         # Passenger is at a location
         if passenger_location < 4:
             # Convert passenger location to coordinates
             passenger_coords = self.env.unwrapped.locs[passenger_location]
             distance_to_passenger = abs(taxi_row - passenger_coords[0]) + abs(taxi_col - passenger_coords[1])
+            passenger_to_destination = abs(passenger_coords[0] - destination_coords[0]) + abs(passenger_coords[1] - destination_coords[1])
 
             # Return strong positive heuristic if taxi is at passenger location to prioritise pick up action
             if distance_to_passenger == 0:
                 return 100
             # Return heuristic for picking up passenger 
             # The heuristic is the Manhattan distance between the taxi and the passenger
-            return -(distance_to_passenger * 10)
+            distance_to_destination = abs(taxi_row - destination_coords[0]) + abs(taxi_col - destination_coords[1])
+            return -(distance_to_destination * 10)
 
         # Passenger is in the taxi
         elif passenger_location == 4:
-            # Convert destination location to coordinates
-            destination_coords = self.env.unwrapped.locs[destination]
             distance_to_destination = abs(taxi_row - destination_coords[0]) + abs(taxi_col - destination_coords[1])
             # Return heuristic for dropping off customer
             # The heuristic is the Manhattan distance between the taxi and the passenger

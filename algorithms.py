@@ -50,53 +50,73 @@ def a_star_search(problem):
     # No solution found
     return None
 
-# ============================
+# =============================
 # Iterative Deepening A* Search
-# ============================
+# =============================
 def iterative_deepening_a_star_search(problem):
+    # Recursive DFS function
     def dfs(state, g, threshold, path, visited):
-        f = -(g + problem.heuristic(state))
+        # Evaluation function
+        f = g + problem.heuristic(state)
+
+        # If 'f' exceeds threshold and no solution has been found, return 'f' value to use as 
+        # threshold for next iteration
         if f > threshold:
             return None, f
+        
+        # Check if state is goal state
         if problem.check_goal_state(state):
             return path, f
-
+        # Track smallest 'f' value that exceeds current threshold
         min_threshold = float('inf')
+        # Mark state as visited
         visited.add(state)
 
+        # Iterate over successor states
         for next_state, action, reward in problem.successors(state):
+            # Cycle detection
             if next_state in visited:
-                continue  # Avoid cycles
-
-            new_g = g + reward  # Use actual reward for each action
+                # Skip state
+                continue
+            
+            # Calculate new 'g' value
+            new_g = g + reward
+            # Update path
             new_path = path + [action]
+            # Recursively call DFS for each successor
             result, temp_threshold = dfs(next_state, new_g, threshold, new_path, visited)
-
+            # Check if solution is found within recursive call
             if result is not None:
                 return result, temp_threshold
-
+            # Update 'min_threshold' if 'f' value from recursive call is smaller
             if temp_threshold < min_threshold:
                 min_threshold = temp_threshold
-
-        visited.remove(state)  # Backtrack to explore other paths
+        # Unmark state as visited so algorithm can explore other paths while backtracking
+        visited.remove(state) 
         return None, min_threshold
 
-    # Initial threshold is the heuristic estimate from the start state
+    # Initialise threshold as heuristic of start state
     threshold = problem.heuristic(problem.start_state)
 
+    # Infinite loop
     while True:
+        # Initialise set to store visited states
         visited = set()
+        # Initialise list to build solution path
         path = []
+        # Call DFS to explore state space within current threshold
         result, temp_threshold = dfs(problem.start_state, 0, threshold, path, visited)
 
+        # Check if solution is found
         if result is not None:
-            return result  # Return the sequence of actions
-
+            return result
+        # Check if updated threshold is infinity
         if temp_threshold == float('inf'):
-            return None  # No solution found
-
-        threshold = temp_threshold  # Increase the threshold for the next iteration
-
+            # No solution found
+            return None
+        
+        # Increase the threshold for the next iteration
+        threshold = temp_threshold
 
 
 # ====================
