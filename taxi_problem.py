@@ -5,19 +5,19 @@ import gymnasium as gym
 # ==================
 class TaxiProblem:
 
-    # Environment Seed
+    # Environment seed.
     current_seed = 100
 
     # ===========
     # Initialiser
     # ===========
     def __init__(self, seed=None):
-        # Set seed if seed is passed through the parameter
+        # Set seed if seed is passed through the parameter.
         if seed is not None:
             self.current_seed = seed
-        # Create Taxi-v3 environment
+        # Create Taxi-v3 environment.
         self.env = gym.make("Taxi-v3", render_mode="human")
-        # Initialise start state
+        # Initialise start state.
         self.start_state, _ = self.env.reset(seed=self.current_seed)
 
     # ==================
@@ -26,31 +26,30 @@ class TaxiProblem:
     def heuristic(self, state):
         # Decode state
         taxi_row, taxi_col, passenger_location, destination = self.env.unwrapped.decode(state)
-        # Convert destination location to coordinates
+        # Convert destination location to coordinates.
         destination_coords = self.env.unwrapped.locs[destination]
 
-        # Passenger is at a location
+        # Passenger is at a location.
         if passenger_location < 4:
-            # Convert passenger location to coordinates
+            # Convert passenger location to coordinates.
             passenger_coords = self.env.unwrapped.locs[passenger_location]
             distance_to_passenger = abs(taxi_row - passenger_coords[0]) + abs(taxi_col - passenger_coords[1])
-            passenger_to_destination = abs(passenger_coords[0] - destination_coords[0]) + abs(passenger_coords[1] - destination_coords[1])
 
             # Return strong positive heuristic if taxi is at passenger location to prioritise pick up action
             if distance_to_passenger == 0:
-                return 100
-            # Return heuristic for picking up passenger 
-            # The heuristic is the Manhattan distance between the taxi and the passenger
-            distance_to_destination = abs(taxi_row - destination_coords[0]) + abs(taxi_col - destination_coords[1])
-            return -(distance_to_destination * 10)
+                return 10
 
-        # Passenger is in the taxi
+            # Return heuristic for picking up passenger.
+            # The heuristic is the Manhattan distance between the taxi and the passenger.
+            return -(distance_to_passenger)
+
+        # Passenger is in the taxi.
         elif passenger_location == 4:
             distance_to_destination = abs(taxi_row - destination_coords[0]) + abs(taxi_col - destination_coords[1])
-            # Return heuristic for dropping off customer
+            # Return heuristic for dropping off customer.
             # The heuristic is the Manhattan distance between the taxi and the passenger
-            # passenger subtracted from the reward for dropping the customer off (20)
-            return 20 - distance_to_destination
+            # passenger subtracted from the reward for dropping the customer off (20).
+            return -(distance_to_destination) + 20
 
         else:
             raise ValueError(f"Unexpected passenger_location value: {passenger_location}")
@@ -59,36 +58,36 @@ class TaxiProblem:
     # Goal State
     # ==========
     def check_goal_state(self, state):
-        # Decode state
+        # Decode state.
         taxi_row, taxi_col, passenger_location, destination = self.env.unwrapped.decode(state)
-        # Return true if passenger is at destination
+        # Return true if passenger is at destination.
         return passenger_location == destination
 
     # ==========
     # Successors
     # ==========
     def successors(self, state):
-        # Decode state
+        # Decode state.
         taxi_row, taxi_col, passenger_location, destination = self.env.unwrapped.decode(state)
-        # Create list to store successors
+        # Create list to store successors.
         successors = []
-        # For each available action
+        # For each available action.
         for action in range(self.env.action_space.n):
-            # Reset the environment state to the given state
+            # Reset the environment state to the given state.
             self.env.unwrapped.s = state
-            # Take action
+            # Take action.
             new_state, reward, terminated, truncated, _ = self.env.step(action)
 
-            # If drop off action is taken and the passenger is at the destination
-            # Add successor to list and skip rest of loop since drop off must be done
+            # If drop off action is taken and the passenger is at the destination, add successor to 
+            # list and skip the rest of the loop since the drop off action must be performed.
             if action == 5:
                 if passenger_location == 4 and (taxi_row, taxi_col) == self.env.unwrapped.locs[destination]:
                     successors.append((new_state, action, reward))
                     continue
                     
-            # Avoid adding terminated states back into exploration
+            # Avoid adding terminated states back into exploration.
             if not terminated and not truncated:
-                # Add succesoot to list
+                # Add successor to list.
                 successors.append((new_state, action, reward))
         return successors
 
@@ -98,11 +97,11 @@ class TaxiProblem:
     def reconstruct_path(self, came_from, state):
         path = []
         while state in came_from:
-            # Update state and retrieve action
+            # Update state and retrieve action.
             state, action = came_from[state]
-            # Append action that was taken to reach state
+            # Append action that was taken to reach state.
             path.append(action)
-        # Reverse to get the path in correct order
+        # Reverse to get the path in correct order.
         path.reverse()
         return path
 
@@ -110,15 +109,15 @@ class TaxiProblem:
     # Render Solution
     # ===============
     def render_solution(self, solution):
-        # Reset environment with the same seed as the environment used for searching
+        # Reset environment with the same seed as the environment used for searching.
         self.env.reset(seed=self.current_seed)
-        # For each action in the solution path
+        # For each action in the solution path.
         for action in solution:
-            # Take the action
+            # Take the action.
             self.env.step(action)
-            # Render each step
+            # Render each step.
             self.env.render()
-        # Close environment
+        # Close environment.
         self.env.close() 
 
 
