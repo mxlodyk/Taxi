@@ -8,7 +8,10 @@ import algorithms
 # Main Processing Loop
 # ====================
 def main():
-    
+
+    # Environment seed.
+    current_seed = 100
+
     # Display menu.
     selection = -1
     while selection != 5:
@@ -21,8 +24,7 @@ def main():
         
         # Selection 1: A* search.
         if selection == "1":
-            # Instantiate problem.
-            problem = taxi.TaxiProblem()
+            problem = taxi.TaxiProblem(seed=current_seed)
             # Record time.
             t0 = time()
             # Perform A* search.
@@ -31,14 +33,14 @@ def main():
             if solution:
                 # Print results.
                 print("A* Solution actions:", solution)
-                print("Speed:", t1)
+                print(f"Speed: {t1:.2f}")
                 # Render solution.
                 problem.render_solution(solution)
 
         # Selection 2: IDA* search.
         elif selection == "2":
             # Instantiate problem.
-            problem = taxi.TaxiProblem()
+            problem = taxi.TaxiProblem(seed=current_seed)
             # Record time.
             t0 = time()
             # Perform IDA* search.
@@ -47,10 +49,9 @@ def main():
             if solution:
                 # Print results.
                 print("IDA*'s Solution actions:", solution)
-                print("Speed:", t1)
+                print(f"Speed: {t1:.2f}")
                 # Render solution.
                 problem.render_solution(solution)
-
 
         # Selection 3: Compare algorithms.
         elif selection == "3":
@@ -60,15 +61,15 @@ def main():
             # Create multiprocessing queue for storing solutions.
             solution_queue = multiprocessing.Queue()
             # Create processes for running algorithms
-            process1 = multiprocessing.Process(target=algorithms.run_algorithm, args=("a_star_search", event1, solution_queue))
-            process2 = multiprocessing.Process(target=algorithms.run_algorithm, args=("iterative_deepening_a_star_search", event2, solution_queue))
+            process1 = multiprocessing.Process(target=algorithms.run_algorithm, args=("a_star_search", event1, solution_queue, current_seed))
+            process2 = multiprocessing.Process(target=algorithms.run_algorithm, args=("iterative_deepening_a_star_search", event2, solution_queue, current_seed))
             # Start processes.
             process1.start()
             process2.start()
             # Wait for both algorithms to finish.
             event1.wait()
             event2.wait()
-            # Join processes
+            # Join processes.
             process1.join()
             process2.join()
 
@@ -78,7 +79,7 @@ def main():
                 if solution:
                     print(f"{algorithm_name} rendering...")
                     # Instantiate problem for rendering.
-                    problem = taxi.TaxiProblem()
+                    problem = taxi.TaxiProblem(seed=current_seed)
                     # Render solutions.
                     problem.render_solution(solution)
                 else:
@@ -93,15 +94,15 @@ def main():
                 # Check input is positive integer.
                 if new_seed > 0:
                     # Assign new seed.
-                    taxi.seed = new_seed
+                    current_seed = new_seed
                 else:
                     print("The seed must be a positive integer.")
             except ValueError:
                 print("The seed must be a positive integer.")
-            main()
 
         # Selection 5: Quit.
         elif selection == "5":
+            problem.env.close()
             sys.exit(0)
 
 if __name__ == "__main__":

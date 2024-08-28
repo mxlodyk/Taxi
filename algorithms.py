@@ -1,4 +1,5 @@
 import heapq
+from time import time
 import taxi_problem as taxi
 
 # =========
@@ -171,28 +172,34 @@ def dijkstras_algorithm(problem):
 # ================================================
 # Function to Run Algorithms in Separate Processes
 # ================================================
-def run_algorithm(algorithm, event, solution_queue):
+def run_algorithm(algorithm, event, solution_queue, seed):
     # Instantiate problem.
-    problem = taxi.TaxiProblem()
+    problem = taxi.TaxiProblem(seed=seed)
     # Run A* search function.
     if algorithm == "a_star_search":
+        t0 = time()
         solution = a_star_search(problem)
+        t1 = time() - t0
         if solution:
-            print("A* Solution actions:", solution)
+            print("A* solution actions:", solution)
+            print(f"A* speed: {t1:.2f}")
             # Store A* solution in multiprocessing queue.
             solution_queue.put(("A*", solution))
         else:
-            print("A* No solution found.")
+            print("A*: No solution found.")
             solution_queue.put(("A*", None))
     # Run Iterative Deepening A* search function.
     elif algorithm == "iterative_deepening_a_star_search":
-        solution = dijkstras_algorithm(problem)
+        t0 = time()
+        solution = iterative_deepening_a_star_search(problem)
+        t1 = time() - t0
         if solution:
             # Store IDA*'s solution in multiprocessing queue.
-            print("Iterative Deepening A* Solution actions:", solution)
+            print("Iterative deepening A* solution actions:", solution)
+            print(f"Iterative deepening A* speed: {t1:.2f}")
             solution_queue.put(("Iterative Deepening A*", solution))
         else:
-            print("Dijkstra No solution found.")
+            print("Iterative deepening A*: No solution found.")
             solution_queue.put(("Iterative Deepening A*", None))
     # Set each algorithm event as complete.
     event.set() 

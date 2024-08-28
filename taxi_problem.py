@@ -5,9 +5,6 @@ import gymnasium as gym
 # ==================
 class TaxiProblem:
 
-    # Environment seed.
-    current_seed = 100
-
     # ===========
     # Initialiser
     # ===========
