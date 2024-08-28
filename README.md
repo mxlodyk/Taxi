@@ -8,7 +8,7 @@
 - [Design](#design)
 
 ## Introduction
-This project demonstrates the implementation of two search algorithms, **A\*** and **Dijkstra's Algorithm**, within the `Taxi-v3` environment from OpenAI's Gym library. The objective is to solve the Taxi problem by finding an optimal path for the taxi to pick up and drop off passengers. Comments are verbose because it is part of a **university assignment**.
+This project demonstrates the implementation of two search algorithms, **A\*** and **Iterative Deepening A***, within the `Taxi-v3` environment from OpenAI's Gym library. The objective is to solve the Taxi problem by finding an optimal path for the taxi to pick up and drop off passengers. Comments are verbose because it is part of a **university assignment**.
 
 ## Features
 - **A\* Search**: An informed approach that uses a heuristic to guide the search for the optimal path.
@@ -47,3 +47,6 @@ To run the program, execute the `main.py` script. You can do this either from th
 
 ## Design
 ![TaxiProblem Class Diagram](assets/class_diagram.png)
+
+## Screenshots
+![Menu](assets/menu.png)
