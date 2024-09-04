@@ -16,11 +16,6 @@ This project demonstrates the implementation of two search algorithms, **A\*** a
 - **Environment Rendering**: Visualizes the solution path within the Taxi-v3 environment.
 - **Comparison Mode**: Runs both algorithms in parallel and compares their solutions.
 
-
-### Prerequisites
-- Python 3.10.x
-- OpenAI Gymnasium library
-
 ## Installation
 1. Clone the repository:
     ```bash
@@ -40,13 +35,18 @@ This project demonstrates the implementation of two search algorithms, **A\*** a
 python main.py
 ```
 
+### Prerequisites
+- Python 3.10.x
+- OpenAI Gymnasium library
 
 ## Usage
 To run the program, execute the `main.py` script. You can do this either from the command line or by running the script in your preferred Integrated Development Environment (IDE).
-
 
 ## Design
 ![TaxiProblem Class Diagram](assets/class_diagram.png)
 
 ## Screenshots
 ![Menu](assets/menu.png)
+
+## Videos
+https://www.youtube.com/watch?v=U_n79-Ajna0
