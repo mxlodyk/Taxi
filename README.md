@@ -1,4 +1,4 @@
-# Comparing A* and IDA* in Taxi-v3
+# A* and IDA* Comparison in Taxi-v3
 
 ## Table of Contents
 - [Introduction](#introduction)
