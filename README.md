@@ -1,4 +1,4 @@
-# Taxi-v3 Search Algorithms
+# Comparing A* and IDA* in Taxi-v3
 
 ## Table of Contents
 - [Introduction](#introduction)
